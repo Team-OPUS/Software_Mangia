@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Restaurante Mangia — Sistema de Gestión</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+</head>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">Restaurante Mangia</div>
+    <div class="login-sub">Sistema de Gestión Integral</div>
+    <div class="login-error" id="login-error"></div>
+    <label>Usuario</label>
+    <input type="text" id="login-user" placeholder="admin / mesero / cocinero / cajero" value="admin">
+    <label>Contraseña</label>
+    <input type="password" id="login-pass" placeholder="••••••••" value="1234">
+    <button class="btn-login" onclick="Controller.auth.login()">INGRESAR</button>
+    <div class="login-forgot" onclick="openModal('modal-forgot')">¿Olvidó su contraseña?</div>
+    <div class="login-demo">
+      <strong>Cuentas demo:</strong><br>
+      admin / 1234 → Administrador<br>
+      mesero / 1234 → Mesero<br>
+      cocinero / 1234 → Cocinero<br>
+      cajero / 1234 → Cajero
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-name">RESTAURANTE<br>MANGIA</div>
+      <div class="sidebar-brand-sub">Sistema de Gestión</div>
+    </div>
+    <nav id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <a onclick="Controller.auth.logout()">⏻ Cerrar sesión</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-sub" id="topbar-sub">Cargando...</div>
+      </div>
+      <div class="topbar-user">
+        <div class="topbar-actions">
+          <span id="notif-badge" style="font-size:12px;color:var(--danger);font-weight:600;cursor:pointer;" onclick="nav('alertas')"></span>
+        </div>
+        <div class="user-info">
+          <div class="user-name" id="user-name-display"></div>
+          <div class="user-role" id="user-role-display"></div>
+        </div>
+        <div class="avatar" id="user-avatar"></div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- DASHBOARD ADMIN -->
+      <div class="page" id="page-dashboard">
+        <div class="kpi-grid" id="kpi-admin"></div>
+        <div class="charts-row">
+          <div class="chart-card"><h3>Ventas últimos 7 días</h3><canvas id="chart-ventas" height="160"></canvas></div>
+          <div class="chart-card"><h3>Platos más vendidos</h3><canvas id="chart-platos" height="160"></canvas></div>
+        </div>
+        <div class="table-card">
+          <h3>Últimos pedidos</h3>
+          <table class="tbl">
+            <thead><tr><th>Mesa</th><th>Mesero</th><th>Total</th><th>Estado</th><th>Hora</th></tr></thead>
+            <tbody id="dashboard-pedidos"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DASHBOARD MESERO -->
+      <div class="page" id="page-dashboard-mesero">
+        <div class="mesas-row" id="mesero-mesas-row"></div>
+        <div class="quick-actions">
+          <h3>Acciones rápidas</h3>
+          <div class="quick-btns">
+            <button class="btn btn-primary" onclick="nav('pedidos')">📋 Tomar pedido</button>
+            <button class="btn btn-secondary" onclick="nav('mesas')">🗺 Ver mapa salón</button>
+            <button class="btn btn-secondary" onclick="nav('facturacion')">🧾 Solicitar cuenta</button>
+            <button class="btn btn-secondary" onclick="nav('reservas')">📅 Reservas</button>
+          </div>
+        </div>
+        <div class="pedidos-curso">
+          <h3>Mis pedidos en curso</h3>
+          <div id="mesero-pedidos-curso"></div>
+        </div>
+      </div>
+
+      <!-- MESAS -->
+      <div class="page" id="page-mesas">
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2>Gestor de Mesas — Mapa del Salón</h2>
+            <p id="mesas-summary"></p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="openModalListaEspera()">Lista de espera</button>
+            <button class="btn btn-primary" onclick="openModal('modal-reserva')">+ Nueva reserva</button>
+          </div>
+        </div>
+        <div class="filter-tabs" id="mesa-filter-tabs">
+          <button class="filter-tab active" onclick="filterMesas('todas',this)">Todas</button>
+          <button class="filter-tab" onclick="filterMesas('libre',this)">Libre</button>
+          <button class="filter-tab" onclick="filterMesas('ocupada',this)">Ocupada</button>
+          <button class="filter-tab" onclick="filterMesas('reservada',this)">Reservada</button>
+          <button class="filter-tab" onclick="filterMesas('cuenta',this)">Cuenta</button>
+        </div>
+        <div class="mesa-grid" id="mesa-grid"></div>
+        <div class="leyenda">
+          <div class="leyenda-item leyenda-libre"><div class="leyenda-box"></div>Libre</div>
+          <div class="leyenda-item leyenda-ocupada"><div class="leyenda-box"></div>Ocupada</div>
+          <div class="leyenda-item leyenda-reservada"><div class="leyenda-box"></div>Reservada</div>
+          <div class="leyenda-item leyenda-cuenta"><div class="leyenda-box"></div>Cuenta</div>
+        </div>
+      </div>
+
+      <!-- MENÚ -->
+      <div class="page" id="page-menu">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Gestor de Menú</h2><p id="menu-summary"></p></div>
+          <button class="btn btn-primary" onclick="openModalPlato()">+ Nuevo plato</button>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" placeholder="Buscar plato..." oninput="renderMenuTable(this.value, document.getElementById('menu-cat-filter').value)">
+          <select id="menu-cat-filter" class="select-filter" onchange="renderMenuTable(document.querySelector('.search-input').value,this.value)">
+            <option value="">Categoría: Todas</option>
+            <option>Entradas</option><option>Pastas</option><option>Pizzas</option><option>Carnes</option><option>Postres</option><option>Bebidas</option><option>Combos</option><option>Menú del día</option>
+          </select>
+        </div>
+        <div class="table-card">
+          <table class="tbl" id="menu-table">
+            <thead><tr><th>#</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Disponible</th><th>Acciones</th></tr></thead>
+            <tbody id="menu-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PEDIDOS -->
+      <div class="page" id="page-pedidos">
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2 id="pedido-title">Toma de Pedido</h2>
+            <p id="pedido-sub">Seleccione una mesa</p>
+          </div>
+          <select class="select-filter" id="mesa-select" onchange="cambiarMesaPedido(this.value)">
+            <option value="">— Seleccionar mesa —</option>
+          </select>
+        </div>
+        <div class="order-layout">
+          <div>
+            <div class="menu-tabs" id="pedido-tabs">
+              <button class="menu-tab active" onclick="filterPedidoMenu('',this)">Todos</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Entradas',this)">Entradas</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Pastas',this)">Pastas</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Pizzas',this)">Pizzas</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Bebidas',this)">Bebidas</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Postres',this)">Postres</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Combos',this)">Combos</button>
+              <button class="menu-tab" onclick="filterPedidoMenu('Menú del día',this)">Menú día</button>
+            </div>
+            <div class="menu-items" id="menu-items-list"></div>
+          </div>
+          <div class="order-panel">
+            <h3 id="order-mesa-label">Pedido</h3>
+            <div class="order-items" id="order-items"></div>
+            <textarea class="order-obs" id="order-obs" rows="3" placeholder="Observaciones: alergias, preferencias..."></textarea>
+            <div class="order-total"><span>Total:</span><span id="order-total">$ 0</span></div>
+            <div class="order-actions">
+              <button class="btn btn-secondary" onclick="clearOrder()">Cancelar</button>
+              <button class="btn btn-primary" onclick="sendOrder()">Enviar a cocina</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODIFICAR PEDIDO -->
+      <div class="page" id="page-modificar">
+        <div class="section-header">
+          <div class="section-header-left">
+            <h2 id="modificar-title">Modificar Pedido</h2>
+            <p>Estado: Enviado a cocina | Modificación con autorización</p>
+          </div>
+          <button class="btn btn-secondary" onclick="history.back()">← Volver</button>
+        </div>
+        <div class="modif-layout">
+          <div id="modif-items-list"></div>
+          <div class="modif-motivo">
+            <h4>Tipo de cambio</h4>
+            <div class="check-group">
+              <label class="check-item"><input type="radio" name="modif-tipo" value="modificar" checked> Modificar ítem</label>
+              <label class="check-item"><input type="radio" name="modif-tipo" value="cancelar"> Cancelar pedido completo</label>
+              <label class="check-item"><input type="radio" name="modif-tipo" value="mesa"> Cambiar mesa</label>
+            </div>
+            <h4>Motivo de la modificación:</h4>
+            <textarea class="order-obs" id="modif-motivo" rows="4" placeholder="Describir el motivo del cambio..."></textarea>
+            <button class="btn btn-primary" style="width:100%;margin-top:14px;justify-content:center;" onclick="Controller.modificar.confirmar()">Confirmar cambio</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- COCINA -->
+      <div class="page" id="page-cocina">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Pantalla de Cocina</h2><p>Pedidos en preparación — tiempo real</p></div>
+          <span style="font-size:12px;color:var(--success);">● En línea</span>
+        </div>
+        <div class="cocina-columns">
+          <div class="cocina-col">
+            <div class="cocina-col-header nuevo">NUEVOS</div>
+            <div class="cocina-col-body" id="col-nuevos"></div>
+          </div>
+          <div class="cocina-col">
+            <div class="cocina-col-header prep">EN PREPARACIÓN</div>
+            <div class="cocina-col-body" id="col-preparando"></div>
+          </div>
+          <div class="cocina-col">
+            <div class="cocina-col-header listo">LISTOS</div>
+            <div class="cocina-col-body" id="col-listos"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVENTARIO -->
+      <div class="page" id="page-inventario">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Gestor de Inventario</h2><p id="inventario-summary"></p></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-warning" id="btn-alertas-inv" onclick="nav('alertas')">⚠ Ver alertas</button>
+            <button class="btn btn-primary" onclick="openModalInsumo()">+ Nuevo insumo</button>
+          </div>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" placeholder="Buscar insumo..." oninput="renderInventario(this.value, document.getElementById('inv-filter').value)">
+          <select id="inv-filter" class="select-filter" onchange="renderInventario(document.querySelector('#page-inventario .search-input').value,this.value)">
+            <option value="">Estado: Todos</option>
+            <option value="critico">Crítico</option>
+            <option value="normal">Normal</option>
+          </select>
+        </div>
+        <div class="table-card">
+          <table class="tbl">
+            <thead><tr><th>Insumo</th><th>Unidad</th><th>Stock</th><th>Mín.</th><th>Estado</th><th>Proveedor</th><th>Acciones</th></tr></thead>
+            <tbody id="inventario-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ALERTAS -->
+      <div class="page" id="page-alertas">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Alertas de Stock Mínimo</h2><p id="alertas-summary"></p></div>
+        </div>
+        <div class="alert-panel" id="alertas-panel"></div>
+      </div>
+
+      <!-- PROVEEDORES -->
+      <div class="page" id="page-proveedores">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Gestor de Proveedores</h2><p id="prov-summary"></p></div>
+          <button class="btn btn-primary" onclick="openModalProveedor()">+ Nuevo proveedor</button>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" placeholder="Buscar proveedor..." oninput="renderProveedores(this.value)">
+        </div>
+        <div class="table-card">
+          <table class="tbl">
+            <thead><tr><th>Nombre</th><th>Teléfono</th><th>Productos</th><th>Cond. pago</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="prov-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- RESERVAS -->
+      <div class="page" id="page-reservas">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Gestión de Reservas</h2><p id="reservas-summary"></p></div>
+          <button class="btn btn-primary" onclick="openModalReserva()">+ Nueva reserva</button>
+        </div>
+        <div class="reservas-toolbar">
+          <input type="date" class="select-filter" id="res-fecha-filter" onchange="renderReservas()">
+          <select class="select-filter" id="res-estado-filter" onchange="renderReservas()">
+            <option value="">Estado: Todas</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <div class="table-card">
+          <table class="tbl">
+            <thead><tr><th>Hora</th><th>Cliente</th><th>Personas</th><th>Mesa</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="reservas-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FACTURACIÓN -->
+      <div class="page" id="page-facturacion">
+        <div class="section-header">
+          <div class="section-header-left"><h2 id="factura-title">Facturación</h2><p>Seleccione una mesa con cuenta activa</p></div>
+          <select class="select-filter" id="factura-mesa-select" onchange="renderFacturacion(this.value)">
+            <option value="">— Seleccionar mesa —</option>
+          </select>
+        </div>
+        <div id="factura-content"><div class="empty-state">Seleccione una mesa para ver el detalle de consumo</div></div>
+      </div>
+
+      <!-- FACTURA PDF -->
+      <div class="page" id="page-factura-pdf">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Comprobante de Pago</h2></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="nav('facturacion')">← Volver</button>
+            <button class="btn btn-primary" onclick="window.print()">🖨 Imprimir</button>
+          </div>
+        </div>
+        <div class="invoice-print" id="invoice-print-content"></div>
+      </div>
+
+      <!-- CIERRE DE CAJA -->
+      <div class="page" id="page-caja">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Cierre de Caja</h2><p id="caja-sub"></p></div>
+        </div>
+        <div id="caja-content"></div>
+      </div>
+
+      <!-- REPORTES MENÚ -->
+      <div class="page" id="page-reportes">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Módulo de Reportes</h2><p>Seleccione el reporte a generar</p></div>
+        </div>
+        <div class="reports-grid">
+          <div class="report-card"><h3>Ventas por período</h3><p>Diario, semanal, mensual — con gráfica</p><button class="btn btn-primary" onclick="nav('reporte-ventas')">Generar →</button></div>
+          <div class="report-card"><h3>Productos más vendidos</h3><p>Ranking de platos por unidades e ingresos</p><button class="btn btn-primary" onclick="nav('reporte-productos')">Generar →</button></div>
+          <div class="report-card"><h3>Consumo de inventario</h3><p>Insumos consumidos por período</p><button class="btn btn-primary" onclick="nav('reporte-inventario-rpt')">Generar →</button></div>
+          <div class="report-card"><h3>Horas pico</h3><p>Análisis de afluencia por hora del día</p><button class="btn btn-primary" onclick="nav('reporte-horaspico')">Generar →</button></div>
+          <div class="report-card"><h3>Rendimiento del personal</h3><p>Pedidos y ventas por mesero</p><button class="btn btn-primary" onclick="nav('reporte-personal')">Generar →</button></div>
+          <div class="report-card"><h3>Comparación de períodos</h3><p>Período A vs Período B</p><button class="btn btn-primary" onclick="nav('reporte-comparacion')">Generar →</button></div>
+        </div>
+      </div>
+
+      <!-- REPORTE VENTAS -->
+      <div class="page" id="page-reporte-ventas">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Reporte de Ventas</h2><p id="rv-periodo"></p></div>
+          <div style="display:flex;gap:8px;">
+            <select class="select-filter" id="rv-grupo" onchange="renderReporteVentas()"><option value="dia">Agrupar: Día</option><option value="semana">Semana</option><option value="mes">Mes</option></select>
+            <button class="btn btn-secondary" onclick="nav('reportes')">← Volver</button>
+            <button class="btn btn-secondary" onclick="exportarVentasPDF()">PDF</button>
+            <button class="btn btn-primary" onclick="exportarVentasExcel()">Excel</button>
+          </div>
+        </div>
+        <div class="reporte-header" id="rv-kpis"></div>
+        <div class="charts-row">
+          <div class="chart-card"><h3>Ventas por día</h3><canvas id="chart-reporte" height="160"></canvas></div>
+          <div class="chart-card"><h3 id="rv-table-title">Detalle</h3><div id="rv-table"></div></div>
+        </div>
+        <div class="table-card"><h3>Top platos del período</h3><table class="tbl"><thead><tr><th>Plato</th><th>Unidades</th><th>Ingresos</th></tr></thead><tbody id="rv-top-platos"></tbody></table></div>
+      </div>
+
+      <!-- REPORTE PRODUCTOS -->
+      <div class="page" id="page-reporte-productos">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Reporte — Productos más Vendidos</h2><p>Último mes</p></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="nav('reportes')">← Volver</button>
+            <button class="btn btn-primary" onclick="exportarProductosPDF()">Exportar PDF</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table class="tbl"><thead><tr><th>#</th><th>Plato</th><th>Categoría</th><th>Unidades vendidas</th><th>Ingresos</th><th>% del total</th></tr></thead>
+          <tbody id="rp-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- REPORTE INVENTARIO -->
+      <div class="page" id="page-reporte-inventario-rpt">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Reporte — Consumo de Inventario</h2><p>Movimientos del período</p></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="nav('reportes')">← Volver</button>
+            <button class="btn btn-primary" onclick="exportarInventarioPDF()">Exportar PDF</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table class="tbl"><thead><tr><th>Insumo</th><th>Unidad</th><th>Stock inicial</th><th>Consumido</th><th>Stock actual</th><th>Estado</th></tr></thead>
+          <tbody id="ri-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- REPORTE HORAS PICO -->
+      <div class="page" id="page-reporte-horaspico">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Reporte — Horas Pico</h2><p>Afluencia por franja horaria</p></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="nav('reportes')">← Volver</button>
+            <button class="btn btn-primary" onclick="exportarExcel('Horas Pico',['Franja','Pedidos prom','Ventas prom'],[['08-10',8,220000],['10-12',22,610000],['12-14',48,1380000],['14-16',15,420000],['16-18',9,250000],['18-20',35,980000],['20-22',28,790000]])">Exportar Excel</button>
+          </div>
+        </div>
+        <div class="chart-card" style="margin-bottom:16px;"><h3>Pedidos por hora del día (promedio semanal)</h3><canvas id="chart-horaspico" height="120"></canvas></div>
+        <div class="table-card">
+          <table class="tbl"><thead><tr><th>Franja horaria</th><th>Pedidos promedio</th><th>Ventas promedio</th><th>Intensidad</th></tr></thead>
+          <tbody id="rh-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- REPORTE PERSONAL -->
+      <div class="page" id="page-reporte-personal">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Reporte — Rendimiento del Personal</h2><p>Por mesero y cajero</p></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="nav('reportes')">← Volver</button>
+            <button class="btn btn-primary" onclick="exportarVentasExcel()">Exportar Excel</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table class="tbl"><thead><tr><th>Empleado</th><th>Rol</th><th>Mesas atendidas</th><th>Pedidos</th><th>Ventas totales</th><th>Ticket prom.</th></tr></thead>
+          <tbody id="rper-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- REPORTE COMPARACIÓN -->
+      <div class="page" id="page-reporte-comparacion">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Comparación entre Períodos</h2><p>Período A vs Período B</p></div>
+          <button class="btn btn-secondary" onclick="nav('reportes')">← Volver</button>
+        </div>
+        <div class="compare-grid">
+          <div class="compare-card"><h3>Ventas totales</h3>
+            <div class="compare-row"><span>Abril 2026:</span><strong>$ 28.4M</strong></div>
+            <div class="compare-row"><span>Mayo 2026:</span><strong>$ 31.2M</strong></div>
+            <div style="margin-top:8px;"><span class="compare-variation up">↑ + 9.8 %</span></div>
+          </div>
+          <div class="compare-card"><h3>Pedidos totales</h3>
+            <div class="compare-row"><span>Abril 2026:</span><strong>1.028</strong></div>
+            <div class="compare-row"><span>Mayo 2026:</span><strong>1.142</strong></div>
+            <div style="margin-top:8px;"><span class="compare-variation up">↑ + 11.0 %</span></div>
+          </div>
+          <div class="compare-card"><h3>Ticket promedio</h3>
+            <div class="compare-row"><span>Abril 2026:</span><strong>$ 27.6k</strong></div>
+            <div class="compare-row"><span>Mayo 2026:</span><strong>$ 27.3k</strong></div>
+            <div style="margin-top:8px;"><span class="compare-variation down">↓ − 1.0 %</span></div>
+          </div>
+          <div class="compare-card"><h3>Mesas atendidas</h3>
+            <div class="compare-row"><span>Abril 2026:</span><strong>486</strong></div>
+            <div class="compare-row"><span>Mayo 2026:</span><strong>542</strong></div>
+            <div style="margin-top:8px;"><span class="compare-variation up">↑ + 11.5 %</span></div>
+          </div>
+        </div>
+        <div class="compare-footer">
+          <button class="btn btn-secondary" onclick="exportarVentasPDF()">Exportar PDF</button>
+          <button class="btn btn-primary" onclick="exportarVentasExcel()">Exportar Excel</button>
+        </div>
+      </div>
+
+      <!-- AUDITORÍA RF-15 -->
+      <div class="page" id="page-auditoria">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Registro de Auditoría</h2><p id="audit-summary"></p></div>
+          <div style="display:flex;gap:8px;">
+            <select class="select-filter" id="audit-modulo-filter" onchange="renderAuditoria()">
+              <option value="">Módulo: Todos</option>
+              <option>Usuarios</option><option>Pedidos</option><option>Menú</option>
+              <option>Inventario</option><option>Facturación</option><option>Caja</option>
+              <option>Reservas</option><option>Proveedores</option><option>Sesión</option>
+            </select>
+            <button class="btn btn-secondary" onclick="exportarAuditoriaPDF()">Exportar PDF</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table class="tbl">
+            <thead><tr><th>Fecha/Hora</th><th>Usuario</th><th>Rol</th><th>Módulo</th><th>Acción</th><th>Detalle</th></tr></thead>
+            <tbody id="audit-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- USUARIOS -->
+      <div class="page" id="page-usuarios">
+        <div class="section-header">
+          <div class="section-header-left"><h2>Gestión de Usuarios y Roles</h2><p id="users-summary"></p></div>
+          <button class="btn btn-primary" onclick="openModalUsuario()">+ Nuevo usuario</button>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" placeholder="Buscar usuario..." oninput="renderUsuarios(this.value)">
+        </div>
+        <div class="table-card">
+          <table class="tbl">
+            <thead><tr><th>Usuario</th><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CONFIGURACIÓN -->
+      <div class="page" id="page-configuracion">
+        <div class="section-header">
+          <div class="section-header-left"><h2 id="config-title">Configuración</h2><p id="config-sub"></p></div>
+        </div>
+        <div class="config-grid">
+          <div class="config-card">
+            <h3>Cambiar contraseña</h3>
+            <div class="form-group"><label>Contraseña actual</label><input type="password" id="cfg-pass-actual" placeholder="••••••••"></div>
+            <div class="form-group" style="margin-top:10px;"><label>Nueva contraseña</label><input type="password" id="cfg-pass-nueva" placeholder="••••••••"></div>
+            <div class="form-group" style="margin-top:10px;"><label>Confirmar nueva contraseña</label><input type="password" id="cfg-pass-confirm" placeholder="••••••••"></div>
+            <button class="btn btn-primary" style="margin-top:14px;" onclick="Controller.config.cambiarPassword()">Guardar contraseña</button>
+          </div>
+          <div class="config-card">
+            <h3>Preferencias del sistema</h3>
+            <div class="toggle-row"><span>Alertas de stock en pantalla</span><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
+            <div class="toggle-row"><span>Notificaciones de pedidos listos</span><div class="toggle" onclick="this.classList.toggle('off')"></div></div>
+            <div class="toggle-row"><span>Sonido en cocina</span><div class="toggle off" onclick="this.classList.toggle('off')"></div></div>
+            <div class="toggle-row"><span>Modo pantalla completa</span><div class="toggle off" onclick="this.classList.toggle('off')"></div></div>
+          </div>
+        </div>
+        <div class="config-card" style="margin-top:16px;" id="config-info-card">
+          <h3>Información de mi cuenta</h3>
+          <div id="config-info-rows"></div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="modal-mesa">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-mesa-title">Gestionar Mesa</div>
+      <button class="modal-close" onclick="closeModal('modal-mesa')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="mesa-detail-layout">
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;">Detalles de la mesa</h4>
+          <table class="mesa-info-table">
+            <tr><td>Número:</td><td id="md-num">—</td></tr>
+            <tr><td>Capacidad:</td><td id="md-cap">4 comensales</td></tr>
+            <tr><td>Estado actual:</td><td id="md-estado">—</td></tr>
+            <tr><td>Mesero asignado:</td><td id="md-mesero">Sin asignar</td></tr>
+            <tr><td>Comensales:</td><td id="md-comensales">0</td></tr>
+            <tr><td>Hora apertura:</td><td id="md-hora">—</td></tr>
+          </table>
+          <div class="form-group" style="margin-top:14px;"><label>Asignar mesero</label>
+            <select class="select-filter" id="md-mesero-select" style="width:100%;"></select>
+          </div>
+          <div class="form-group" style="margin-top:10px;"><label>Número de comensales</label>
+            <input type="number" id="md-comensales-input" value="4" min="1" max="20">
+          </div>
+        </div>
+        <div>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;">Acciones</h4>
+          <div class="mesa-acciones" id="mesa-acciones"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-plato">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-plato-title">Nuevo Plato</div>
+      <button class="modal-close" onclick="closeModal('modal-plato')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="plato-id">
+      <div class="form-grid">
+        <div class="form-group full"><label>Nombre del plato *</label><input id="plato-nombre" placeholder="Pasta Carbonara"></div>
+        <div class="form-group"><label>Categoría *</label>
+          <select id="plato-cat"><option>Entradas</option><option>Pastas</option><option>Pizzas</option><option>Carnes</option><option>Postres</option><option>Bebidas</option><option>Combos</option><option>Menú del día</option></select>
+        </div>
+        <div class="form-group"><label>Precio (COP) *</label><input id="plato-precio" placeholder="28000" type="number" min="0"></div>
+        <div class="form-group full"><label>Descripción</label><textarea id="plato-desc" rows="2" placeholder="Descripción breve del plato..."></textarea></div>
+        <div class="form-group"><label>Tiempo de preparación</label><input id="plato-tiempo" placeholder="15 min"></div>
+        <div class="form-group"><label>Disponible</label>
+          <select id="plato-disponible"><option value="1">Sí</option><option value="0">No</option></select>
+        </div>
+        <div class="form-group full"><label>Imagen del plato (URL o subir)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="plato-img-url" placeholder="https://... o deje vacío" style="flex:1;padding:9px 12px;border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+            <label style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:#e8e4dc;font-size:12px;cursor:pointer;font-weight:500;white-space:nowrap;text-transform:none;letter-spacing:0;">
+              <input type="file" id="plato-img-file" accept="image/*" style="display:none;" onchange="handlePlatoImageFile(this)"> 📷 Subir imagen
+            </label>
+          </div>
+          <div id="plato-img-preview" style="margin-top:8px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-plato')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.menu.save()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-reserva">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-reserva-title">Nueva Reserva</div>
+      <button class="modal-close" onclick="closeModal('modal-reserva')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="reserva-id">
+      <div class="form-grid">
+        <div class="form-group full"><label>Nombre del cliente *</label><input id="res-cliente" placeholder="Andrea López"></div>
+        <div class="form-group"><label>Fecha *</label><input id="res-fecha" type="date"></div>
+        <div class="form-group"><label>Hora *</label><input id="res-hora" type="time" value="12:30"></div>
+        <div class="form-group"><label>N° de personas *</label><input id="res-personas" type="number" value="4" min="1" max="30"></div>
+        <div class="form-group"><label>Teléfono</label><input id="res-tel" placeholder="311-222-5555"></div>
+        <div class="form-group"><label>Mesa preferida</label>
+          <select id="res-mesa"><option value="">Sin preferencia</option></select>
+        </div>
+        <div class="form-group full"><label>Observaciones</label><textarea id="res-obs" rows="2" placeholder="Cumpleaños, menú especial..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reserva')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.reservas.save()">Confirmar reserva</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-insumo">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-insumo-title">Nuevo Insumo</div>
+      <button class="modal-close" onclick="closeModal('modal-insumo')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="insumo-id">
+      <div class="form-grid">
+        <div class="form-group full"><label>Nombre del insumo *</label><input id="insumo-nombre" placeholder="Tomate fresco"></div>
+        <div class="form-group"><label>Unidad de medida *</label>
+          <select id="insumo-unidad"><option>kg</option><option>g</option><option>L</option><option>ml</option><option>unidad</option><option>botella</option></select>
+        </div>
+        <div class="form-group"><label>Stock inicial *</label><input id="insumo-stock" type="number" placeholder="12.5" min="0" step="0.1"></div>
+        <div class="form-group"><label>Stock mínimo *</label><input id="insumo-minimo" type="number" placeholder="5.0" min="0" step="0.1"></div>
+        <div class="form-group full"><label>Proveedor</label><select id="insumo-proveedor"></select></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-insumo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.inventario.save()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-ajuste">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <div class="modal-title">Ajuste de Stock</div>
+      <button class="modal-close" onclick="closeModal('modal-ajuste')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="ajuste-id">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Insumo: <strong id="ajuste-nombre"></strong></p>
+      <div class="form-group">
+        <label>Tipo de ajuste</label>
+        <select id="ajuste-tipo">
+          <option value="entrada">Entrada de mercancía (+)</option>
+          <option value="merma">Merma / pérdida (−)</option>
+          <option value="ajuste">Ajuste de inventario</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Cantidad</label>
+        <input id="ajuste-cantidad" type="number" placeholder="0.0" min="0" step="0.1">
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Motivo</label>
+        <textarea id="ajuste-motivo" rows="2" placeholder="Descripción del ajuste..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-ajuste')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.inventario.confirmarAjuste()">Aplicar ajuste</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-proveedor">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-prov-title">Nuevo Proveedor</div>
+      <button class="modal-close" onclick="closeModal('modal-proveedor')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="prov-id">
+      <div class="form-grid">
+        <div class="form-group full"><label>Nombre *</label><input id="prov-nombre" placeholder="Verduras Aguachica"></div>
+        <div class="form-group"><label>Teléfono</label><input id="prov-tel" placeholder="311-555-0101"></div>
+        <div class="form-group"><label>Correo</label><input id="prov-email" placeholder="proveedor@email.com" type="email"></div>
+        <div class="form-group"><label>Productos suministrados</label><input id="prov-productos" placeholder="Frutas, verduras"></div>
+        <div class="form-group"><label>Condición de pago</label>
+          <select id="prov-pago"><option>Contado</option><option>Crédito 15d</option><option>Crédito 30d</option><option>Crédito 60d</option></select>
+        </div>
+        <div class="form-group"><label>Dirección</label><input id="prov-dir" placeholder="Cra 10 #12-34, Aguachica"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-proveedor')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.proveedores.save()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-usuario">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-user-title">Nuevo Usuario</div>
+      <button class="modal-close" onclick="closeModal('modal-usuario')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="user-edit-id">
+      <div class="form-grid">
+        <div class="form-group"><label>Nombre completo *</label><input id="user-nombre" placeholder="Diego Mendoza"></div>
+        <div class="form-group"><label>Correo *</label><input id="user-email" placeholder="diego@mangia.com" type="email"></div>
+        <div class="form-group"><label>Usuario *</label><input id="user-username" placeholder="diego.mendoza"></div>
+        <div class="form-group"><label>Rol *</label>
+          <select id="user-rol"><option>Administrador</option><option>Mesero</option><option>Cajero</option><option>Cocinero</option></select>
+        </div>
+        <div class="form-group"><label>Contraseña</label><input id="user-pass" type="password" placeholder="••••••••"></div>
+        <div class="form-group"><label>Confirmar contraseña</label><input id="user-pass2" type="password" placeholder="••••••••"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-usuario')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.usuarios.save()">Guardar usuario</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-forgot">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Recuperar Contraseña</div>
+      <button class="modal-close" onclick="closeModal('modal-forgot')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Ingrese su nombre de usuario o correo registrado. El administrador del sistema deberá restablecer su contraseña.</p>
+      <div class="form-group"><label>Usuario o correo</label><input id="forgot-input" placeholder="admin o yuber@mangia.com"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-forgot')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.auth.solicitarRecuperacion()">Enviar solicitud</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-confirm">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="confirm-title">Confirmar acción</div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;" id="confirm-msg"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-confirm')">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;background:#c0392b;color:#fff;text-align:center;padding:10px;font-size:13px;font-weight:600;">⚠ Sin conexión — Los pedidos se enviarán automáticamente al restablecer la red <span id="offline-pending-count"></span></div>
+
+<!-- MODAL: PAGO EN EFECTIVO RF-12 -->
+<div class="modal-overlay" id="modal-efectivo">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header">
+      <div class="modal-title">Pago en Efectivo</div>
+      <button class="modal-close" onclick="closeModal('modal-efectivo')">x</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Ingrese el monto recibido del cliente.</p>
+      <div class="form-group"><label>Total a cobrar</label>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Serif Display',serif;padding:10px 0;" id="efec-total-label">$ 0</div>
+      </div>
+      <div class="form-group" style="margin-top:12px;"><label>Monto recibido (COP) *</label>
+        <input type="number" id="efec-recibido" placeholder="0" min="0" step="1000" oninput="calcularCambio()" style="font-size:18px;font-weight:600;">
+      </div>
+      <div id="efec-cambio-box" style="margin-top:14px;display:none;padding:14px;background:#e8f5e9;border:1px solid #c8e6c9;">
+        <div style="display:flex;justify-content:space-between;font-size:14px;"><span>Cambio a devolver:</span><strong id="efec-cambio" style="color:var(--success);font-size:18px;">$ 0</strong></div>
+      </div>
+      <div id="efec-error-box" style="margin-top:10px;display:none;padding:10px;background:#ffebee;border:1px solid #ffcdd2;font-size:13px;color:var(--danger);"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-efectivo')">Cancelar</button>
+      <button class="btn btn-primary" id="efec-confirmar-btn" onclick="confirmarPagoEfectivo()">Confirmar cobro</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COMBINAR MESAS RF-07 -->
+<div class="modal-overlay" id="modal-combinar">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-combinar-title">Combinar Mesas</div>
+      <button class="modal-close" onclick="closeModal('modal-combinar')">x</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;">Seleccione la mesa secundaria. Los pedidos y la cuenta se unificarán bajo la mesa principal.</p>
+      <div id="combinar-mesa-origen" style="font-size:13px;font-weight:600;margin-bottom:12px;"></div>
+      <div class="form-group"><label>Mesa secundaria a combinar</label>
+        <select id="combinar-mesa-dest" style="width:100%;padding:9px 12px;border:1px solid var(--border);font-family:'DM Sans',sans-serif;font-size:13px;" onchange="previewCombinar()"></select>
+      </div>
+      <div id="combinar-preview" style="margin-top:14px;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-combinar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="Controller.mesa.confirmarCombinar()">Combinar mesas</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CANCELACION CON APROBACION RF-06 -->
+<div class="modal-overlay" id="modal-aprobar-cancel">
+  <div class="modal" style="width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Cancelacion requiere aprobacion</div>
+      <button class="modal-close" onclick="closeModal('modal-aprobar-cancel')">x</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-light);margin-bottom:16px;" id="aprobar-cancel-msg"></p>
+      <div class="form-group"><label>Usuario administrador</label><input type="text" id="aprobar-admin-user" placeholder="admin"></div>
+      <div class="form-group" style="margin-top:10px;"><label>Contrasena del administrador</label><input type="password" id="aprobar-admin-pass" placeholder="****"></div>
+      <div class="form-group" style="margin-top:10px;"><label>Motivo de cancelacion *</label><textarea id="aprobar-cancel-motivo" rows="3" placeholder="Motivo obligatorio..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-aprobar-cancel')">Cancelar</button>
+      <button class="btn btn-danger" onclick="Controller.modificar.aprobarAdmin()">Aprobar cancelacion</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: SIN RECETA RF-09 -->
+<div class="modal-overlay" id="modal-sin-receta">
+  <div class="modal" style="width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">Alerta - Items sin receta configurada</div>
+      <button class="modal-close" onclick="closeModal('modal-sin-receta')">x</button>
+    </div>
+    <div class="modal-body">
+      <div id="sin-receta-list"></div>
+      <p style="font-size:13px;color:var(--text-light);margin-top:14px;">El sistema no puede descontar inventario para estos items. Configure las recetas correspondientes.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-sin-receta')">Cerrar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-sin-receta');nav('menu')">Ir a configurar menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFLICTO RESERVAS RF-08 -->
+<div class="modal-overlay" id="modal-reserva-conflicto">
+  <div class="modal" style="width:480px;">
+    <div class="modal-header">
+      <div class="modal-title">Conflicto de horario en reserva</div>
+      <button class="modal-close" onclick="closeModal('modal-reserva-conflicto')">x</button>
+    </div>
+    <div class="modal-body">
+      <div id="conflicto-detail" style="margin-bottom:16px;font-size:13px;"></div>
+      <p style="font-size:13px;font-weight:600;margin-bottom:10px;">Mesas alternativas disponibles en esa franja horaria:</p>
+      <div id="conflicto-alternativas"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reserva-conflicto')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="modal-overlay" id="modal-lista-espera">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">Lista de Espera</div>
+      <button class="modal-close" onclick="closeModal('modal-lista-espera')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="lista-espera-content"></div>
+      <div class="form-group" style="margin-top:16px;"><label>Agregar a lista de espera</label><input id="espera-nombre" placeholder="Nombre del cliente"></div>
+      <div class="form-group" style="margin-top:8px;"><label>N° de personas</label><input id="espera-personas" type="number" value="2" min="1"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-lista-espera')">Cerrar</button>
+      <button class="btn btn-primary" onclick="Controller.listaEspera.agregar()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: DETALLE MESA (MVC) -->
+<div class="modal-overlay" id="modal-mesa">
+  <div class="modal" style="width:400px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-mesa-title">Mesa</div>
+      <button class="modal-close" onclick="closeModal('modal-mesa')">×</button>
+    </div>
+    <div class="modal-body" id="modal-mesa-body"></div>
+  </div>
+</div>
+
+<!-- Scripts MVC -->
+<script src="model/Model.js"></script>
+<script src="view/View.js"></script>
+<script src="controller/Controller.js"></script>
+</body>
+</html>
